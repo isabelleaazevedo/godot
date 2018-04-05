@@ -255,7 +255,42 @@ btScalar GodotRestInfoContactResultCallback::addSingleResult(btManifoldPoint &cp
 	return cp.getDistance();
 }
 
+void serialize_shape(String name, const btCollisionShape *shape) {
+
+	btDefaultSerializer *serializer = new btDefaultSerializer();
+	serializer->startSerialization();
+	shape->serializeSingleShape(serializer);
+	serializer->finishSerialization();
+
+	// create a file and write the serialized content to file
+	FILE *file = fopen((String("/home/andreacatania/WorkSpace/git/godot/bin/serialization/") + name + String(".bullet")).utf8().get_data(), "wb");
+	fwrite(serializer->getBufferPointer(), serializer->getCurrentBufferSize(), 1, file);
+	fclose(file);
+}
+
 void GodotDeepPenetrationContactResultCallback::addContactPoint(const btVector3 &normalOnBInWorld, const btVector3 &pointInWorldOnB, btScalar depth) {
+
+	/*bool ser = false;
+	if (0 < depth) {
+		if (ser) {
+			// positive depth
+			bool isSwapped = m_manifoldPtr->getBody0() != m_body0Wrap->getCollisionObject();
+			if (isSwapped) {
+				serialize_shape("sphere", m_body1Wrap->getCollisionShape());
+				serialize_shape("trimesh", m_body0Wrap->getCollisionShape());
+			} else {
+				serialize_shape("sphere", m_body0Wrap->getCollisionShape());
+				serialize_shape("trimesh", m_body1Wrap->getCollisionShape());
+
+				btTransformData shap0;
+				btTransformData shap1;
+				m_body0Wrap->m_worldTransform.serialize(shap0);
+				m_body1Wrap->m_worldTransform.serialize(shap1);
+
+				print_line("serialized");
+			}
+		}
+	}*/
 
 	if (m_penetration_distance > depth) { // Has penetration?
 
