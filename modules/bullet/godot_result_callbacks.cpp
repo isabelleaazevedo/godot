@@ -268,11 +268,25 @@ void serialize_shape(String name, const btCollisionShape *shape) {
 	fclose(file);
 }
 
+void serialize_world(String name, btDiscreteDynamicsWorld *world) {
+
+	btDefaultSerializer *serializer = new btDefaultSerializer();
+	serializer->startSerialization();
+	world->serialize(serializer);
+	serializer->finishSerialization();
+
+	// create a file and write the serialized content to file
+	FILE *file = fopen((String("/home/andreacatania/WorkSpace/git/godot/bin/serialization/") + name + String(".bullet")).utf8().get_data(), "wb");
+	fwrite(serializer->getBufferPointer(), serializer->getCurrentBufferSize(), 1, file);
+	fclose(file);
+}
+
 void GodotDeepPenetrationContactResultCallback::addContactPoint(const btVector3 &normalOnBInWorld, const btVector3 &pointInWorldOnB, btScalar depth) {
 
-	/*bool ser = false;
+	bool ser = false;
 	if (0 < depth) {
 		if (ser) {
+			serialize_world("world", world);
 			// positive depth
 			bool isSwapped = m_manifoldPtr->getBody0() != m_body0Wrap->getCollisionObject();
 			if (isSwapped) {
@@ -290,7 +304,7 @@ void GodotDeepPenetrationContactResultCallback::addContactPoint(const btVector3 
 				print_line("serialized");
 			}
 		}
-	}*/
+	}
 
 	if (m_penetration_distance > depth) { // Has penetration?
 

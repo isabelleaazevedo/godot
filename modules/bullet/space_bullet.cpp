@@ -1115,6 +1115,7 @@ bool SpaceBullet::RFP_convex_world_test(const btConvexShape *p_shapeA, const btC
 	btCollisionAlgorithm *algorithm = dispatcher->findAlgorithm(&obA, &obB, NULL, BT_CONTACT_POINT_ALGORITHMS);
 	if (algorithm) {
 		GodotDeepPenetrationContactResultCallback contactPointResult(&obA, &obB);
+		contactPointResult.world = dynamicsWorld;
 		//discrete collision detection query
 		algorithm->processCollision(&obA, &obB, dynamicsWorld->getDispatchInfo(), &contactPointResult);
 
