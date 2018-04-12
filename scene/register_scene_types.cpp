@@ -191,6 +191,7 @@
 #include "scene/3d/vehicle_body.h"
 #include "scene/3d/visibility_notifier.h"
 #include "scene/resources/environment.h"
+#include "scene/3d/spring_arm.h"
 #endif
 
 static ResourceFormatLoaderTheme *resource_loader_theme = NULL;
@@ -389,6 +390,7 @@ void register_scene_types() {
 	ClassDB::register_class<RigidBody>();
 	ClassDB::register_class<KinematicCollision>();
 	ClassDB::register_class<KinematicBody>();
+	ClassDB::register_class<SpringArm>();
 
 	ClassDB::register_class<VehicleBody>();
 	ClassDB::register_class<VehicleWheel>();
