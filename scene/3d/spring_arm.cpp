@@ -29,157 +29,79 @@
 /*************************************************************************/
 
 #include "spring_arm.h"
-#include "servers/physics_server.h"
-#include "scene/resources/sphere_shape.h"
+#include "engine.h"
 #include "scene/3d/collision_object.h"
+#include "scene/resources/sphere_shape.h"
+#include "servers/physics_server.h"
 
-
-SpringArm::SpringArm() {
-	spring_max_length = 10;
-	spring_max_height = 5;
-	smoothness = 0.5;
-	looking_at_target = true;
-	target = NULL;
-	exclude_target_children = false;
-	shape = memnew(SphereShape());
-	Object::cast_to<SphereShape>(shape)->set_radius(0.3);
-	excluded_colliders = Set<RID>();
-	exclude_target = true;
-}
+SpringArm::SpringArm() :
+		spring_length(1) {}
 
 void SpringArm::_notification(int p_what) {
 	switch (p_what) {
-		case NOTIFICATION_READY: {
-			if(target==NULL){
-				target = NULL;
-				set_target(NodePath());
-				return;
-			}
-			set_target(target->get_path());
-		} break;
-		case NOTIFICATION_INTERNAL_PROCESS: {
-			_process(get_process_delta_time());
-		} break;
+		case NOTIFICATION_ENTER_TREE:
+			//if (!Engine::get_singleton()->is_editor_hint())
+			set_process_internal(true);
+			break;
+		case NOTIFICATION_EXIT_TREE:
+			//if (!Engine::get_singleton()->is_editor_hint())
+			set_process_internal(false);
+			break;
+		case NOTIFICATION_INTERNAL_PROCESS:
+			process_spring();
+			break;
 	}
 }
 
 void SpringArm::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("set_target", "target"), &SpringArm::set_target);
-	ClassDB::bind_method(D_METHOD("set_spring_max_length", "length"), &SpringArm::set_spring_max_length);
-	ClassDB::bind_method(D_METHOD("set_spring_max_height", "height"), &SpringArm::set_spring_max_height);
-	ClassDB::bind_method(D_METHOD("set_smoothness", "smoothness"), &SpringArm::set_smoothness);
-	ClassDB::bind_method(D_METHOD("set_looking_at_target", "look_at_target"), &SpringArm::set_looking_at_target);
+	ClassDB::bind_method(D_METHOD("set_spring_length", "length"), &SpringArm::set_spring_length);
+	ClassDB::bind_method(D_METHOD("get_spring_length"), &SpringArm::get_spring_length);
 
-	ClassDB::bind_method(D_METHOD("get_target"), &SpringArm::get_target);
-	ClassDB::bind_method(D_METHOD("get_spring_max_length"), &SpringArm::get_spring_max_length);
-	ClassDB::bind_method(D_METHOD("get_spring_max_height"), &SpringArm::get_spring_max_height);
-	ClassDB::bind_method(D_METHOD("get_smoothness"), &SpringArm::get_smoothness);
-	ClassDB::bind_method(D_METHOD("is_looking_at_target"), &SpringArm::is_looking_at_target);
+	ClassDB::bind_method(D_METHOD("set_shape", "shape"), &SpringArm::set_shape);
+	ClassDB::bind_method(D_METHOD("get_shape"), &SpringArm::get_shape);
 
-	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "target"), "set_target", "get_target");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "spring_max_length"), "set_spring_max_length", "get_spring_max_length");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "spring_max_height"), "set_spring_max_height", "get_spring_max_height");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "smoothness"), "set_smoothness", "get_smoothness");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "looking_at_target"), "set_looking_at_target", "is_looking_at_target");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "shape", PROPERTY_HINT_RESOURCE_TYPE, "Shape"), "set_shape", "get_shape");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "spring_length"), "set_spring_length", "get_spring_length");
 }
 
-float SpringArm::get_spring_max_length() const {
-	return spring_max_length;
+float SpringArm::get_spring_length() const {
+	return spring_length;
 }
 
-void SpringArm::set_spring_max_length(float p_length) {
-	spring_max_length = p_length;
+void SpringArm::set_spring_length(float p_length) {
+	spring_length = p_length;
 }
 
-float SpringArm::get_spring_max_height() const {
-	return spring_max_height;
+void SpringArm::set_shape(Ref<Shape> p_shape) {
+	shape = p_shape;
 }
 
-void SpringArm::set_spring_max_height(float p_height) {
-	spring_max_height = p_height;
+Ref<Shape> SpringArm::get_shape() const {
+	return shape;
 }
 
-float SpringArm::get_smoothness() const {
-	return smoothness;
-}
+void SpringArm::process_spring() {
 
-void SpringArm::set_smoothness(float p_smoothness) {
-	this->smoothness = CLAMP(smoothness, 0.001, 1.0);
-}
-
-
-void SpringArm::set_looking_at_target(bool p_look_at_target) {
-	looking_at_target = p_look_at_target;
-}
-
-bool SpringArm::is_looking_at_target() const {
-	return looking_at_target;
-}
-
-NodePath SpringArm::get_target() const {
-	if (!target)
-		return NodePath();
-
-	return get_path_to(target);
-}
-
-void SpringArm::set_target(const NodePath &p_target) {
-
-	Spatial *target_ptr = Object::cast_to<Spatial>(get_node(p_target));
-
-
-	if (!target_ptr || target == this) {
-		set_process_internal(false);
-		this->target = NULL;
+	if (shape.is_null())
 		return;
+
+	// From
+	real_t motion_delta(1);
+	real_t motion_delta_unsafe(1);
+
+	const Vector3 cast_direction(get_global_transform().basis.xform(Vector3(0, 0, 1)));
+	const Vector3 motion(cast_direction * spring_length);
+
+	get_world()->get_direct_space_state()->cast_motion(shape->get_rid(), get_global_transform(), motion, 0, motion_delta, motion_delta_unsafe);
+
+	Transform childs_transform;
+	childs_transform.basis = get_global_transform().basis;
+	childs_transform.origin = get_global_transform().origin + cast_direction * (spring_length * motion_delta);
+
+	for (int i = get_child_count() - 1; 0 <= i; --i) {
+
+		Spatial *child(Object::cast_to<Spatial>(get_child(i)));
+		if (child)
+			child->set_global_transform(childs_transform);
 	}
-	set_process_internal(true);
-	this->target = target_ptr;
-	CollisionObject *collision = Object::cast_to<CollisionObject>(target_ptr);
-	if(!collision){
-		return;
-	}
-	excluded_colliders = Set<RID>();
-	if(!exclude_target_children){
-		return;
-	}
-	//TODO children
-	Vector<Object> to_explore = Vector<Object>();
-	
-}
-
-void SpringArm::_process(float p_delta) {
-
-    Vector3 wanted_position = _compute_movement();
-	//print_line("position is "+ get_global_transform().origin.operator String() + 
-	//	" wanted position "+ wanted_position.operator String());
-	Vector3 motion_vec = wanted_position - get_global_transform().origin;
-	PhysicsDirectSpaceState::ShapeRestInfo info = {};
-	float closest_safe=1.0, closest_unsafe;
-
-    bool motion_possible = get_world()->get_direct_space_state()->cast_motion(shape->get_rid(),
-	 	get_global_transform(), 
-		motion_vec, 0.1 , closest_safe, closest_unsafe, 
-		excluded_colliders, 0x7FFFFFFF,
-		&info);
-
-	if(!motion_possible){
-		print_line("No motion possible");
-		return;
-	}
-	print_line("motion possible");
-	motion_vec *= closest_safe;
-	motion_vec.slide(info.normal);
-	Transform trans = get_global_transform();
-	trans.origin += motion_vec;
-	set_global_transform(trans);
-	
-}
-
-Vector3 SpringArm::_compute_movement() {
-	Vector3 target_forward = -target->get_global_transform().basis.get_axis(2).normalized();
-	Vector3 target_up = target->get_global_transform().basis.get_axis(1).normalized();
-	Vector3 camera_position = target->get_global_transform().origin;
-	camera_position += -target_forward * spring_max_length + target_up * spring_max_height;
-	return camera_position;
 }

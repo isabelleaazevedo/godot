@@ -33,45 +33,27 @@
 
 #include "scene/3d/spatial.h"
 
-
 class SpringArm : public Spatial {
 	GDCLASS(SpringArm, Spatial);
 
-    
-	Spatial *target;
-    Shape *shape;
+	Ref<Shape> shape;
 
-	float spring_max_length;
-	float spring_max_height;
-	float smoothness;
-	bool looking_at_target;
-	bool exclude_target_children;
-	bool exclude_target;
-	Set<RID> excluded_colliders;
+	float spring_length;
 
 protected:
 	void _notification(int p_what);
 	static void _bind_methods();
 
 public:
-	void set_target(const NodePath &p_target);
-	NodePath get_target() const;
-	void set_spring_max_length(float p_length);
-	float get_spring_max_length() const;
-	void set_spring_max_height(float p_height);
-	float get_spring_max_height() const;
-	void set_smoothness(float p_smoothness);
-	float get_smoothness() const;
-	void set_looking_at_target(bool p_look_at_target);
-	bool is_looking_at_target() const;
-	void set_shape(const Shape *p_shape);
-	Shape* get_shape() const;
+	void set_spring_length(float p_length);
+	float get_spring_length() const;
+	void set_shape(Ref<Shape> p_shape);
+	Ref<Shape> get_shape() const;
 
 	SpringArm();
 
 private:
-	void _process(float p_delta);
-	Vector3 _compute_movement();
+	void process_spring();
 };
 
 #endif
