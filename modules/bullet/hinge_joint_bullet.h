@@ -38,11 +38,13 @@
 */
 
 class HingeJointBullet : public JointBullet {
-	class btHingeConstraint *hingeConstraint;
+	class btGeneric6DofConstraint *fakeHingeConstraint;
 
 public:
 	HingeJointBullet(RigidBodyBullet *rbA, RigidBodyBullet *rbB, const Transform &frameA, const Transform &frameB);
 	HingeJointBullet(RigidBodyBullet *rbA, RigidBodyBullet *rbB, const Vector3 &pivotInA, const Vector3 &pivotInB, const Vector3 &axisInA, const Vector3 &axisInB);
+
+	void construct(RigidBodyBullet *rbA, RigidBodyBullet *rbB, const Transform &frameA, const Transform &frameB);
 
 	virtual PhysicsServer::JointType get_type() const { return PhysicsServer::JOINT_HINGE; }
 

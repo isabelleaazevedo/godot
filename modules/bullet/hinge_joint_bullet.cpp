@@ -43,6 +43,30 @@
 HingeJointBullet::HingeJointBullet(RigidBodyBullet *rbA, RigidBodyBullet *rbB, const Transform &frameA, const Transform &frameB) :
 		JointBullet() {
 
+	construct(rbA, rbB, frameA, frameB);
+}
+
+void make_frame(const Vector3 &p_pivotInA, const Vector3 &p_axisInA, Transform &r_frame) {
+	Vector3 Z = p_axisInA;
+	Vector3 X = Vector3(0, 1, 0).cross(Z).normalized();
+	Vector3 Y = X.cross(p_axisInA).normalized();
+
+	r_frame.basis.set(X, Y, Z);
+	r_frame.set_origin(p_pivotInA);
+}
+
+HingeJointBullet::HingeJointBullet(RigidBodyBullet *rbA, RigidBodyBullet *rbB, const Vector3 &pivotInA, const Vector3 &pivotInB, const Vector3 &axisInA, const Vector3 &axisInB) :
+		JointBullet() {
+
+	Transform frameA;
+	Transform frameB;
+	make_frame(pivotInA, axisInA, frameA);
+	make_frame(pivotInB, axisInB, frameB);
+
+	construct(rbA, rbB, frameA, frameB);
+}
+
+void HingeJointBullet::construct(RigidBodyBullet *rbA, RigidBodyBullet *rbB, const Transform &frameA, const Transform &frameB) {
 	Transform scaled_AFrame(frameA.scaled(rbA->get_body_scale()));
 	scaled_AFrame.basis.rotref_posscale_decomposition(scaled_AFrame.basis);
 
@@ -57,40 +81,23 @@ HingeJointBullet::HingeJointBullet(RigidBodyBullet *rbA, RigidBodyBullet *rbB, c
 		btTransform btFrameB;
 		G_TO_B(scaled_BFrame, btFrameB);
 
-		hingeConstraint = bulletnew(btHingeConstraint(*rbA->get_bt_rigid_body(), *rbB->get_bt_rigid_body(), btFrameA, btFrameB));
+		fakeHingeConstraint = bulletnew(btGeneric6DofConstraint(*rbA->get_bt_rigid_body(), *rbB->get_bt_rigid_body(), btFrameA, btFrameB, false));
 	} else {
 
-		hingeConstraint = bulletnew(btHingeConstraint(*rbA->get_bt_rigid_body(), btFrameA));
+		fakeHingeConstraint = bulletnew(btGeneric6DofConstraint(*rbA->get_bt_rigid_body(), btFrameA, false));
 	}
 
-	setup(hingeConstraint);
-}
+	fakeHingeConstraint->setLinearUpperLimit(btVector3(0, 0, 0));
+	fakeHingeConstraint->setLinearLowerLimit(btVector3(0, 0, 0));
 
-HingeJointBullet::HingeJointBullet(RigidBodyBullet *rbA, RigidBodyBullet *rbB, const Vector3 &pivotInA, const Vector3 &pivotInB, const Vector3 &axisInA, const Vector3 &axisInB) :
-		JointBullet() {
+	//fakeHingeConstraint->setLinearUpperLimit(btVector3(0,0,0));
+	//fakeHingeConstraint->setLinearLowerLimit(btVector3(0,0,0));
 
-	btVector3 btPivotA;
-	btVector3 btAxisA;
-	G_TO_B(pivotInA * rbA->get_body_scale(), btPivotA);
-	G_TO_B(axisInA * rbA->get_body_scale(), btAxisA);
-
-	if (rbB) {
-		btVector3 btPivotB;
-		btVector3 btAxisB;
-		G_TO_B(pivotInB * rbB->get_body_scale(), btPivotB);
-		G_TO_B(axisInB * rbB->get_body_scale(), btAxisB);
-
-		hingeConstraint = bulletnew(btHingeConstraint(*rbA->get_bt_rigid_body(), *rbB->get_bt_rigid_body(), btPivotA, btPivotB, btAxisA, btAxisB));
-	} else {
-
-		hingeConstraint = bulletnew(btHingeConstraint(*rbA->get_bt_rigid_body(), btPivotA, btAxisA));
-	}
-
-	setup(hingeConstraint);
+	setup(fakeHingeConstraint);
 }
 
 real_t HingeJointBullet::get_hinge_angle() {
-	return hingeConstraint->getHingeAngle();
+	return 0; //fakeHingeConstraint->getHingeAngle();
 }
 
 void HingeJointBullet::set_param(PhysicsServer::HingeJointParam p_param, real_t p_value) {
@@ -101,25 +108,20 @@ void HingeJointBullet::set_param(PhysicsServer::HingeJointParam p_param, real_t 
 			}
 			break;
 		case PhysicsServer::HINGE_JOINT_LIMIT_UPPER:
-			hingeConstraint->setLimit(hingeConstraint->getLowerLimit(), p_value, hingeConstraint->getLimitSoftness(), hingeConstraint->getLimitBiasFactor(), hingeConstraint->getLimitRelaxationFactor());
+			fakeHingeConstraint->setAngularUpperLimit(btVector3(0, 0, p_value));
 			break;
 		case PhysicsServer::HINGE_JOINT_LIMIT_LOWER:
-			hingeConstraint->setLimit(p_value, hingeConstraint->getUpperLimit(), hingeConstraint->getLimitSoftness(), hingeConstraint->getLimitBiasFactor(), hingeConstraint->getLimitRelaxationFactor());
+			fakeHingeConstraint->setAngularLowerLimit(btVector3(0, 0, p_value));
 			break;
 		case PhysicsServer::HINGE_JOINT_LIMIT_BIAS:
-			hingeConstraint->setLimit(hingeConstraint->getLowerLimit(), hingeConstraint->getUpperLimit(), hingeConstraint->getLimitSoftness(), p_value, hingeConstraint->getLimitRelaxationFactor());
 			break;
 		case PhysicsServer::HINGE_JOINT_LIMIT_SOFTNESS:
-			hingeConstraint->setLimit(hingeConstraint->getLowerLimit(), hingeConstraint->getUpperLimit(), p_value, hingeConstraint->getLimitBiasFactor(), hingeConstraint->getLimitRelaxationFactor());
 			break;
 		case PhysicsServer::HINGE_JOINT_LIMIT_RELAXATION:
-			hingeConstraint->setLimit(hingeConstraint->getLowerLimit(), hingeConstraint->getUpperLimit(), hingeConstraint->getLimitSoftness(), hingeConstraint->getLimitBiasFactor(), p_value);
 			break;
 		case PhysicsServer::HINGE_JOINT_MOTOR_TARGET_VELOCITY:
-			hingeConstraint->setMotorTargetVelocity(p_value);
 			break;
 		case PhysicsServer::HINGE_JOINT_MOTOR_MAX_IMPULSE:
-			hingeConstraint->setMaxMotorImpulse(p_value);
 			break;
 		default:
 			WARN_PRINTS("The Bullet Hinge Joint doesn't support this parameter: " + itos(p_param) + ", value: " + itos(p_value));
@@ -131,20 +133,26 @@ real_t HingeJointBullet::get_param(PhysicsServer::HingeJointParam p_param) const
 		case PhysicsServer::HINGE_JOINT_BIAS:
 			return 0;
 			break;
-		case PhysicsServer::HINGE_JOINT_LIMIT_UPPER:
-			return hingeConstraint->getUpperLimit();
-		case PhysicsServer::HINGE_JOINT_LIMIT_LOWER:
-			return hingeConstraint->getLowerLimit();
+		case PhysicsServer::HINGE_JOINT_LIMIT_UPPER: {
+			btVector3 lim;
+			fakeHingeConstraint->getAngularUpperLimit(lim);
+			return lim.getZ();
+		}
+		case PhysicsServer::HINGE_JOINT_LIMIT_LOWER: {
+			btVector3 lim;
+			fakeHingeConstraint->getAngularLowerLimit(lim);
+			return lim.getZ();
+		}
 		case PhysicsServer::HINGE_JOINT_LIMIT_BIAS:
-			return hingeConstraint->getLimitBiasFactor();
+			return 0;
 		case PhysicsServer::HINGE_JOINT_LIMIT_SOFTNESS:
-			return hingeConstraint->getLimitSoftness();
+			return 0;
 		case PhysicsServer::HINGE_JOINT_LIMIT_RELAXATION:
-			return hingeConstraint->getLimitRelaxationFactor();
+			return 0;
 		case PhysicsServer::HINGE_JOINT_MOTOR_TARGET_VELOCITY:
-			return hingeConstraint->getMotorTargetVelocity();
+			return 0;
 		case PhysicsServer::HINGE_JOINT_MOTOR_MAX_IMPULSE:
-			return hingeConstraint->getMaxMotorImpulse();
+			return 0;
 		default:
 			WARN_PRINTS("The Bullet Hinge Joint doesn't support this parameter: " + itos(p_param));
 			return 0;
@@ -155,11 +163,15 @@ void HingeJointBullet::set_flag(PhysicsServer::HingeJointFlag p_flag, bool p_val
 	switch (p_flag) {
 		case PhysicsServer::HINGE_JOINT_FLAG_USE_LIMIT:
 			if (!p_value) {
-				hingeConstraint->setLimit(-Math_PI, Math_PI);
+				fakeHingeConstraint->setAngularUpperLimit(btVector3(0, 0, Math_PI));
+				fakeHingeConstraint->setAngularLowerLimit(btVector3(0, 0, -Math_PI));
+			} else {
+				fakeHingeConstraint->setAngularUpperLimit(btVector3(0, 0, 0));
+				fakeHingeConstraint->setAngularLowerLimit(btVector3(0, 0, 0));
 			}
 			break;
 		case PhysicsServer::HINGE_JOINT_FLAG_ENABLE_MOTOR:
-			hingeConstraint->enableMotor(p_value);
+			//fakeHingeConstraint->enableMotor(p_value);
 			break;
 	}
 }
@@ -167,9 +179,9 @@ void HingeJointBullet::set_flag(PhysicsServer::HingeJointFlag p_flag, bool p_val
 bool HingeJointBullet::get_flag(PhysicsServer::HingeJointFlag p_flag) const {
 	switch (p_flag) {
 		case PhysicsServer::HINGE_JOINT_FLAG_USE_LIMIT:
-			return true;
+			return get_param(PhysicsServer::HINGE_JOINT_LIMIT_UPPER) != 0 && get_param(PhysicsServer::HINGE_JOINT_LIMIT_LOWER) != 0;
 		case PhysicsServer::HINGE_JOINT_FLAG_ENABLE_MOTOR:
-			return hingeConstraint->getEnableAngularMotor();
+			return false;
 		default:
 			return false;
 	}
