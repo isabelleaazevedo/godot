@@ -81,17 +81,17 @@ void HingeJointBullet::construct(RigidBodyBullet *rbA, RigidBodyBullet *rbB, con
 		btTransform btFrameB;
 		G_TO_B(scaled_BFrame, btFrameB);
 
-		fakeHingeConstraint = bulletnew(btGeneric6DofConstraint(*rbA->get_bt_rigid_body(), *rbB->get_bt_rigid_body(), btFrameA, btFrameB, false));
+		fakeHingeConstraint = bulletnew(btGeneric6DofConstraint(*rbA->get_bt_rigid_body(), *rbB->get_bt_rigid_body(), btFrameA, btFrameB, true));
 	} else {
 
-		fakeHingeConstraint = bulletnew(btGeneric6DofConstraint(*rbA->get_bt_rigid_body(), btFrameA, false));
+		fakeHingeConstraint = bulletnew(btGeneric6DofConstraint(*rbA->get_bt_rigid_body(), btFrameA, true));
 	}
 
 	fakeHingeConstraint->setLinearUpperLimit(btVector3(0, 0, 0));
 	fakeHingeConstraint->setLinearLowerLimit(btVector3(0, 0, 0));
 
-	//fakeHingeConstraint->setLinearUpperLimit(btVector3(0,0,0));
-	//fakeHingeConstraint->setLinearLowerLimit(btVector3(0,0,0));
+	fakeHingeConstraint->setAngularUpperLimit(btVector3(0, 0, Math_PI));
+	fakeHingeConstraint->setAngularLowerLimit(btVector3(0, 0, -Math_PI));
 
 	setup(fakeHingeConstraint);
 }
@@ -120,8 +120,10 @@ void HingeJointBullet::set_param(PhysicsServer::HingeJointParam p_param, real_t 
 		case PhysicsServer::HINGE_JOINT_LIMIT_RELAXATION:
 			break;
 		case PhysicsServer::HINGE_JOINT_MOTOR_TARGET_VELOCITY:
+			fakeHingeConstraint->getRotationalLimitMotor(2)->m_targetVelocity = p_value;
 			break;
 		case PhysicsServer::HINGE_JOINT_MOTOR_MAX_IMPULSE:
+			fakeHingeConstraint->getRotationalLimitMotor(2)->m_maxMotorForce = p_value;
 			break;
 		default:
 			WARN_PRINTS("The Bullet Hinge Joint doesn't support this parameter: " + itos(p_param) + ", value: " + itos(p_value));
@@ -150,9 +152,9 @@ real_t HingeJointBullet::get_param(PhysicsServer::HingeJointParam p_param) const
 		case PhysicsServer::HINGE_JOINT_LIMIT_RELAXATION:
 			return 0;
 		case PhysicsServer::HINGE_JOINT_MOTOR_TARGET_VELOCITY:
-			return 0;
+			return fakeHingeConstraint->getRotationalLimitMotor(2)->m_targetVelocity;
 		case PhysicsServer::HINGE_JOINT_MOTOR_MAX_IMPULSE:
-			return 0;
+			return fakeHingeConstraint->getRotationalLimitMotor(2)->m_maxMotorForce;
 		default:
 			WARN_PRINTS("The Bullet Hinge Joint doesn't support this parameter: " + itos(p_param));
 			return 0;
@@ -165,13 +167,10 @@ void HingeJointBullet::set_flag(PhysicsServer::HingeJointFlag p_flag, bool p_val
 			if (!p_value) {
 				fakeHingeConstraint->setAngularUpperLimit(btVector3(0, 0, Math_PI));
 				fakeHingeConstraint->setAngularLowerLimit(btVector3(0, 0, -Math_PI));
-			} else {
-				fakeHingeConstraint->setAngularUpperLimit(btVector3(0, 0, 0));
-				fakeHingeConstraint->setAngularLowerLimit(btVector3(0, 0, 0));
 			}
 			break;
 		case PhysicsServer::HINGE_JOINT_FLAG_ENABLE_MOTOR:
-			//fakeHingeConstraint->enableMotor(p_value);
+			fakeHingeConstraint->getRotationalLimitMotor(2)->m_enableMotor = p_value;
 			break;
 	}
 }
@@ -181,7 +180,7 @@ bool HingeJointBullet::get_flag(PhysicsServer::HingeJointFlag p_flag) const {
 		case PhysicsServer::HINGE_JOINT_FLAG_USE_LIMIT:
 			return get_param(PhysicsServer::HINGE_JOINT_LIMIT_UPPER) != 0 && get_param(PhysicsServer::HINGE_JOINT_LIMIT_LOWER) != 0;
 		case PhysicsServer::HINGE_JOINT_FLAG_ENABLE_MOTOR:
-			return false;
+			return fakeHingeConstraint->getRotationalLimitMotor(2)->m_enableMotor;
 		default:
 			return false;
 	}
