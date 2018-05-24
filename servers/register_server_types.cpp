@@ -52,6 +52,7 @@
 #include "audio/effects/audio_effect_reverb.h"
 #include "audio/effects/audio_effect_stereo_enhance.h"
 #include "audio_server.h"
+#include "particle_physics_server.h"
 #include "physics/physics_server_sw.h"
 #include "physics_2d/physics_2d_server_sw.h"
 #include "physics_2d/physics_2d_server_wrap_mt.h"
@@ -96,6 +97,7 @@ void register_server_types() {
 	ClassDB::register_virtual_class<PhysicsServer>();
 	ClassDB::register_virtual_class<Physics2DServer>();
 	ClassDB::register_class<ARVRServer>();
+	ClassDB::register_virtual_class<ParticlePhysicsServer>();
 
 	shader_types = memnew(ShaderTypes);
 
@@ -181,4 +183,5 @@ void register_server_singletons() {
 	Engine::get_singleton()->add_singleton(Engine::Singleton("PhysicsServer", PhysicsServer::get_singleton()));
 	Engine::get_singleton()->add_singleton(Engine::Singleton("Physics2DServer", Physics2DServer::get_singleton()));
 	Engine::get_singleton()->add_singleton(Engine::Singleton("ARVRServer", ARVRServer::get_singleton()));
+	Engine::get_singleton()->add_singleton(Engine::Singleton("ParticlePhysicsServer", ParticlePhysicsServer::get_singleton()));
 }

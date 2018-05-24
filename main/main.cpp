@@ -70,6 +70,7 @@
 #endif
 
 #include "io/file_access_network.h"
+#include "modules/flex/flex_particle_physics_server.h"
 #include "servers/physics_2d_server.h"
 
 #include "core/io/file_access_pack.h"
@@ -93,6 +94,7 @@ AudioServer *audio_server = NULL;
 ARVRServer *arvr_server = NULL;
 PhysicsServer *physics_server = NULL;
 Physics2DServer *physics_2d_server = NULL;
+ParticlePhysicsServer *particle_physics_server = NULL;
 
 static MessageQueue *message_queue = NULL;
 static Performance *performance = NULL;
@@ -158,6 +160,10 @@ void initialize_physics() {
 	}
 	ERR_FAIL_COND(!physics_2d_server);
 	physics_2d_server->init();
+
+	particle_physics_server = memnew(FlexParticlePhysicsServer);
+	ERR_FAIL_COND(!particle_physics_server);
+	particle_physics_server->init();
 }
 
 void finalize_physics() {
