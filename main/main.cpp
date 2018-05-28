@@ -1785,6 +1785,9 @@ bool Main::iteration() {
 		Physics2DServer::get_singleton()->sync();
 		Physics2DServer::get_singleton()->flush_queries();
 
+		ParticlePhysicsServer::get_singleton()->sync();
+		ParticlePhysicsServer::get_singleton()->flush_queries();
+
 		if (OS::get_singleton()->get_main_loop()->iteration(frame_slice * time_scale)) {
 			exit = true;
 			break;
@@ -1796,6 +1799,8 @@ bool Main::iteration() {
 
 		Physics2DServer::get_singleton()->end_sync();
 		Physics2DServer::get_singleton()->step(frame_slice * time_scale);
+
+		ParticlePhysicsServer::get_singleton()->step(frame_slice * time_scale);
 
 		message_queue->flush();
 
