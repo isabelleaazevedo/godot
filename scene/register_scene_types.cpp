@@ -64,6 +64,7 @@
 #include "scene/2d/tile_map.h"
 #include "scene/2d/visibility_notifier_2d.h"
 #include "scene/2d/y_sort.h"
+#include "scene/3d/physics_particle_body.h"
 #include "scene/animation/animation_blend_space_1d.h"
 #include "scene/animation/animation_blend_space_2d.h"
 #include "scene/animation/animation_blend_tree.h"
@@ -437,6 +438,9 @@ void register_scene_types() {
 	ClassDB::register_class<KinematicBody>();
 	ClassDB::register_class<PhysicalBone>();
 	ClassDB::register_class<SoftBody>();
+
+	ClassDB::register_virtual_class<ParticleObject>();
+	ClassDB::register_class<ParticleBody>();
 
 	ClassDB::register_class<VehicleBody>();
 	ClassDB::register_class<VehicleWheel>();
