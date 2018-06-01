@@ -5664,8 +5664,9 @@ EditorNode::EditorNode() {
 	current = NULL;
 
 	PhysicsServer::get_singleton()->set_active(false); // no physics by default if editor
+    ParticlePhysicsServer::get_singleton()->set_active(false); // no physics by default if editor
 	Physics2DServer::get_singleton()->set_active(false); // no physics by default if editor
-	ScriptServer::set_scripting_enabled(false); // no scripting by default if editor
+    ScriptServer::set_scripting_enabled(false); // no scripting by default if editor
 
 	reference_resource_mem = true;
 	save_external_resources_mem = true;
