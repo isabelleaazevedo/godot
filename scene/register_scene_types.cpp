@@ -145,6 +145,7 @@
 #include "scene/resources/mesh_data_tool.h"
 #include "scene/resources/mesh_library.h"
 #include "scene/resources/packed_scene.h"
+#include "scene/resources/particle_shape.h"
 #include "scene/resources/plane_shape.h"
 #include "scene/resources/polygon_path_finder.h"
 #include "scene/resources/primitive_meshes.h"
@@ -597,6 +598,8 @@ void register_scene_types() {
 	ClassDB::register_class<PlaneShape>();
 	ClassDB::register_class<ConvexPolygonShape>();
 	ClassDB::register_class<ConcavePolygonShape>();
+
+    ClassDB::register_class<ParticleShape>();
 
 	ClassDB::register_class<SurfaceTool>();
 	ClassDB::register_class<MeshDataTool>();
