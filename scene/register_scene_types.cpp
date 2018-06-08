@@ -65,6 +65,8 @@
 #include "scene/2d/visibility_notifier_2d.h"
 #include "scene/2d/y_sort.h"
 #include "scene/3d/physics_particle_body.h"
+#include "scene/3d/physics_particle_object.h"
+#include "scene/3d/physics_particle_primitive_body.h"
 #include "scene/animation/animation_blend_space_1d.h"
 #include "scene/animation/animation_blend_space_2d.h"
 #include "scene/animation/animation_blend_tree.h"
@@ -442,6 +444,10 @@ void register_scene_types() {
 
 	ClassDB::register_virtual_class<ParticleObject>();
 	ClassDB::register_class<ParticleBody>();
+<<<<<<< HEAD
+=======
+	ClassDB::register_class<ParticlePrimitiveBody>();
+>>>>>>> Added godot node class particle primitive body
 
 	ClassDB::register_class<VehicleBody>();
 	ClassDB::register_class<VehicleWheel>();
@@ -599,7 +605,7 @@ void register_scene_types() {
 	ClassDB::register_class<ConvexPolygonShape>();
 	ClassDB::register_class<ConcavePolygonShape>();
 
-    ClassDB::register_class<ParticleBodyModel>();
+	ClassDB::register_class<ParticleBodyModel>();
 
 	ClassDB::register_class<SurfaceTool>();
 	ClassDB::register_class<MeshDataTool>();
