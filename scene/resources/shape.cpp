@@ -33,6 +33,7 @@
 #include "os/os.h"
 #include "scene/main/scene_tree.h"
 #include "scene/resources/mesh.h"
+#include "servers/particle_physics_server.h"
 #include "servers/physics_server.h"
 
 void Shape::add_vertices_to_array(PoolVector<Vector3> &array, const Transform &p_xform) {
@@ -92,12 +93,14 @@ Shape::Shape() {
 	ERR_PRINT("Constructor must not be called!");
 }
 
-Shape::Shape(RID p_shape) {
+Shape::Shape(RID p_shape, RID p_particle_shape) {
 
 	shape = p_shape;
+	particle_shape = p_particle_shape;
 }
 
 Shape::~Shape() {
 
 	PhysicsServer::get_singleton()->free(shape);
+	ParticlePhysicsServer::get_singleton()->free(particle_shape);
 }

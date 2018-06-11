@@ -40,16 +40,19 @@ class Shape : public Resource {
 	OBJ_SAVE_TYPE(Shape);
 	RES_BASE_EXTENSION("shape");
 	RID shape;
+	RID particle_shape;
 
 	Ref<ArrayMesh> debug_mesh_cache;
 
 protected:
 	_FORCE_INLINE_ RID get_shape() const { return shape; }
-	Shape(RID p_shape);
+	_FORCE_INLINE_ RID get_particle_shape() const { return particle_shape; }
+	Shape(RID p_shape, RID p_particle_shape = RID());
 
 	virtual Vector<Vector3> _gen_debug_mesh_lines() = 0; // { return Vector<Vector3>(); }
 public:
 	virtual RID get_rid() const { return shape; }
+	virtual RID get_particle_rid() const { return particle_shape; }
 
 	Ref<ArrayMesh> get_debug_mesh();
 
