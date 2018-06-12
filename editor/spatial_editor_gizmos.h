@@ -44,6 +44,7 @@
 #include "scene/3d/navigation_mesh.h"
 #include "scene/3d/particles.h"
 #include "scene/3d/physics_joint.h"
+#include "scene/3d/physics_particle_body.h"
 #include "scene/3d/physics_particle_primitive_body.h"
 #include "scene/3d/portal.h"
 #include "scene/3d/position_3d.h"
@@ -377,6 +378,20 @@ public:
 	virtual void set_handle(int p_idx, Camera *p_camera, const Point2 &p_point);
 	virtual void commit_handle(int p_idx, const Variant &p_restore, bool p_cancel = false);
 	void redraw();
+};
+
+class ParticleBodySpatialGizmo : public EditorSpatialGizmo {
+	GDCLASS(ParticleBodySpatialGizmo, EditorSpatialGizmo);
+
+	ParticleBody *body;
+	SphereMesh spherem;
+
+public:
+	ParticleBodySpatialGizmo(ParticleBody *p_body = NULL);
+
+	virtual void redraw();
+
+	void add_solid_sphere(Ref<Material> &p_material, Vector3 p_position);
 };
 
 class CollisionPolygonSpatialGizmo : public EditorSpatialGizmo {

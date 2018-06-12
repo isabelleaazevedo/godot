@@ -3022,6 +3022,62 @@ void ParticlePrimitiveShapeSpatialGizmo::redraw() {
 
 /////
 
+ParticleBodySpatialGizmo::ParticleBodySpatialGizmo(ParticleBody *p_body) :
+		body(p_body) {
+
+	set_spatial_node(p_body);
+
+	real_t radius = 0.1; // TODO take this correcly
+
+	spherem.set_radius(radius * 0.5);
+	spherem.set_height(radius);
+	spherem.set_radial_segments(8);
+	spherem.set_rings(8);
+}
+
+void ParticleBodySpatialGizmo::redraw() {
+
+	if (!body)
+		return;
+
+	if (body->get_particle_body_model().is_null())
+		return;
+
+	PoolVector<Vector3> particles = body->get_particle_body_model()->get_particles();
+	if (particles.size() <= 0)
+		return;
+
+	Color gizmo_color = EDITOR_GET("editors/3d_gizmos/gizmo_colors/shape");
+	Ref<Material> material = create_material("shape_material", gizmo_color);
+
+	PoolVector<Vector3>::Read r = particles.read();
+	for (int i(particles.size() - 1); 0 <= i; --i) {
+
+		add_solid_sphere(material, particles[i]);
+	}
+}
+
+void ParticleBodySpatialGizmo::add_solid_sphere(Ref<Material> &p_material, Vector3 p_position) {
+	ERR_FAIL_COND(!get_spatial_node());
+
+	Array arrays = spherem.surface_get_arrays(0);
+	PoolVector3Array vertex = arrays[VS::ARRAY_VERTEX];
+	PoolVector3Array::Write w = vertex.write();
+
+	for (int i = 0; i < vertex.size(); ++i) {
+		w[i] += p_position;
+	}
+
+	arrays[VS::ARRAY_VERTEX] = vertex;
+
+	Ref<ArrayMesh> m = memnew(ArrayMesh);
+	m->add_surface_from_arrays(spherem.surface_get_primitive_type(0), arrays);
+	m->surface_set_material(0, p_material);
+	add_mesh(m);
+}
+
+/////
+
 void CollisionPolygonSpatialGizmo::redraw() {
 
 	clear();
@@ -4644,6 +4700,12 @@ Ref<SpatialEditorGizmo> SpatialEditorGizmos::get_gizmo(Spatial *p_spatial) {
 	if (Object::cast_to<ParticlePrimitiveBody>(p_spatial)) {
 
 		Ref<ParticlePrimitiveShapeSpatialGizmo> misg = memnew(ParticlePrimitiveShapeSpatialGizmo(Object::cast_to<ParticlePrimitiveBody>(p_spatial)));
+		return misg;
+	}
+
+	if (Object::cast_to<ParticleBody>(p_spatial)) {
+
+		Ref<ParticleBodySpatialGizmo> misg = memnew(ParticleBodySpatialGizmo(Object::cast_to<ParticleBody>(p_spatial)));
 		return misg;
 	}
 
