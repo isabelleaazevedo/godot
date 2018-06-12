@@ -2574,6 +2574,452 @@ CollisionShapeSpatialGizmo::CollisionShapeSpatialGizmo(CollisionShape *p_cs) {
 	set_spatial_node(p_cs);
 }
 
+////
+
+ParticlePrimitiveShapeSpatialGizmo::ParticlePrimitiveShapeSpatialGizmo(ParticlePrimitiveBody *p_body) :
+		primitive_body(p_body) {
+	set_spatial_node(p_body);
+}
+
+String ParticlePrimitiveShapeSpatialGizmo::get_handle_name(int p_idx) const {
+
+	Ref<Shape> s = primitive_body->get_shape();
+	if (s.is_null())
+		return "";
+
+	if (Object::cast_to<SphereShape>(*s)) {
+
+		return "Radius";
+	}
+
+	if (Object::cast_to<BoxShape>(*s)) {
+
+		return "Extents";
+	}
+
+	if (Object::cast_to<CapsuleShape>(*s)) {
+
+		return p_idx == 0 ? "Radius" : "Height";
+	}
+
+	if (Object::cast_to<RayShape>(*s)) {
+
+		return "Length";
+	}
+
+	return "";
+}
+Variant ParticlePrimitiveShapeSpatialGizmo::get_handle_value(int p_idx) const {
+
+	Ref<Shape> s = primitive_body->get_shape();
+	if (s.is_null())
+		return Variant();
+
+	if (Object::cast_to<SphereShape>(*s)) {
+
+		Ref<SphereShape> ss = s;
+		return ss->get_radius();
+	}
+
+	if (Object::cast_to<BoxShape>(*s)) {
+
+		Ref<BoxShape> bs = s;
+		return bs->get_extents();
+	}
+
+	if (Object::cast_to<CapsuleShape>(*s)) {
+
+		Ref<CapsuleShape> cs = s;
+		return p_idx == 0 ? cs->get_radius() : cs->get_height();
+	}
+
+	if (Object::cast_to<RayShape>(*s)) {
+
+		Ref<RayShape> cs = s;
+		return cs->get_length();
+	}
+
+	return Variant();
+}
+void ParticlePrimitiveShapeSpatialGizmo::set_handle(int p_idx, Camera *p_camera, const Point2 &p_point) {
+	Ref<Shape> s = primitive_body->get_shape();
+	if (s.is_null())
+		return;
+
+	Transform gt = primitive_body->get_global_transform();
+	gt.orthonormalize();
+	Transform gi = gt.affine_inverse();
+
+	Vector3 ray_from = p_camera->project_ray_origin(p_point);
+	Vector3 ray_dir = p_camera->project_ray_normal(p_point);
+
+	Vector3 sg[2] = { gi.xform(ray_from), gi.xform(ray_from + ray_dir * 4096) };
+
+	if (Object::cast_to<SphereShape>(*s)) {
+
+		Ref<SphereShape> ss = s;
+		Vector3 ra, rb;
+		Geometry::get_closest_points_between_segments(Vector3(), Vector3(4096, 0, 0), sg[0], sg[1], ra, rb);
+		float d = ra.x;
+		if (d < 0.001)
+			d = 0.001;
+
+		ss->set_radius(d);
+	}
+
+	if (Object::cast_to<RayShape>(*s)) {
+
+		Ref<RayShape> rs = s;
+		Vector3 ra, rb;
+		Geometry::get_closest_points_between_segments(Vector3(), Vector3(0, 0, 4096), sg[0], sg[1], ra, rb);
+		float d = ra.z;
+		if (d < 0.001)
+			d = 0.001;
+
+		rs->set_length(d);
+	}
+
+	if (Object::cast_to<BoxShape>(*s)) {
+
+		Vector3 axis;
+		axis[p_idx] = 1.0;
+		Ref<BoxShape> bs = s;
+		Vector3 ra, rb;
+		Geometry::get_closest_points_between_segments(Vector3(), axis * 4096, sg[0], sg[1], ra, rb);
+		float d = ra[p_idx];
+		if (d < 0.001)
+			d = 0.001;
+
+		Vector3 he = bs->get_extents();
+		he[p_idx] = d;
+		bs->set_extents(he);
+	}
+
+	if (Object::cast_to<CapsuleShape>(*s)) {
+
+		Vector3 axis;
+		axis[p_idx == 0 ? 0 : 2] = 1.0;
+		Ref<CapsuleShape> cs = s;
+		Vector3 ra, rb;
+		Geometry::get_closest_points_between_segments(Vector3(), axis * 4096, sg[0], sg[1], ra, rb);
+		float d = axis.dot(ra);
+		if (p_idx == 1)
+			d -= cs->get_radius();
+		if (d < 0.001)
+			d = 0.001;
+
+		if (p_idx == 0)
+			cs->set_radius(d);
+		else if (p_idx == 1)
+			cs->set_height(d * 2.0);
+	}
+}
+void ParticlePrimitiveShapeSpatialGizmo::commit_handle(int p_idx, const Variant &p_restore, bool p_cancel) {
+	Ref<Shape> s = primitive_body->get_shape();
+	if (s.is_null())
+		return;
+
+	if (Object::cast_to<SphereShape>(*s)) {
+
+		Ref<SphereShape> ss = s;
+		if (p_cancel) {
+			ss->set_radius(p_restore);
+			return;
+		}
+
+		UndoRedo *ur = SpatialEditor::get_singleton()->get_undo_redo();
+		ur->create_action(TTR("Change Sphere Shape Radius"));
+		ur->add_do_method(ss.ptr(), "set_radius", ss->get_radius());
+		ur->add_undo_method(ss.ptr(), "set_radius", p_restore);
+		ur->commit_action();
+	}
+
+	if (Object::cast_to<BoxShape>(*s)) {
+
+		Ref<BoxShape> ss = s;
+		if (p_cancel) {
+			ss->set_extents(p_restore);
+			return;
+		}
+
+		UndoRedo *ur = SpatialEditor::get_singleton()->get_undo_redo();
+		ur->create_action(TTR("Change Box Shape Extents"));
+		ur->add_do_method(ss.ptr(), "set_extents", ss->get_extents());
+		ur->add_undo_method(ss.ptr(), "set_extents", p_restore);
+		ur->commit_action();
+	}
+
+	if (Object::cast_to<CapsuleShape>(*s)) {
+
+		Ref<CapsuleShape> ss = s;
+		if (p_cancel) {
+			if (p_idx == 0)
+				ss->set_radius(p_restore);
+			else
+				ss->set_height(p_restore);
+			return;
+		}
+
+		UndoRedo *ur = SpatialEditor::get_singleton()->get_undo_redo();
+		if (p_idx == 0) {
+			ur->create_action(TTR("Change Capsule Shape Radius"));
+			ur->add_do_method(ss.ptr(), "set_radius", ss->get_radius());
+			ur->add_undo_method(ss.ptr(), "set_radius", p_restore);
+		} else {
+			ur->create_action(TTR("Change Capsule Shape Height"));
+			ur->add_do_method(ss.ptr(), "set_height", ss->get_height());
+			ur->add_undo_method(ss.ptr(), "set_height", p_restore);
+		}
+
+		ur->commit_action();
+	}
+
+	if (Object::cast_to<RayShape>(*s)) {
+
+		Ref<RayShape> ss = s;
+		if (p_cancel) {
+			ss->set_length(p_restore);
+			return;
+		}
+
+		UndoRedo *ur = SpatialEditor::get_singleton()->get_undo_redo();
+		ur->create_action(TTR("Change Ray Shape Length"));
+		ur->add_do_method(ss.ptr(), "set_length", ss->get_length());
+		ur->add_undo_method(ss.ptr(), "set_length", p_restore);
+		ur->commit_action();
+	}
+}
+void ParticlePrimitiveShapeSpatialGizmo::redraw() {
+
+	clear();
+
+	Ref<Shape> s = primitive_body->get_shape();
+	if (s.is_null())
+		return;
+
+	Color gizmo_color = EDITOR_GET("editors/3d_gizmos/gizmo_colors/shape");
+	Ref<Material> material = create_material("shape_material", gizmo_color);
+
+	if (Object::cast_to<SphereShape>(*s)) {
+
+		Ref<SphereShape> sp = s;
+		float r = sp->get_radius();
+
+		Vector<Vector3> points;
+
+		for (int i = 0; i <= 360; i++) {
+
+			float ra = Math::deg2rad((float)i);
+			float rb = Math::deg2rad((float)i + 1);
+			Point2 a = Vector2(Math::sin(ra), Math::cos(ra)) * r;
+			Point2 b = Vector2(Math::sin(rb), Math::cos(rb)) * r;
+
+			points.push_back(Vector3(a.x, 0, a.y));
+			points.push_back(Vector3(b.x, 0, b.y));
+			points.push_back(Vector3(0, a.x, a.y));
+			points.push_back(Vector3(0, b.x, b.y));
+			points.push_back(Vector3(a.x, a.y, 0));
+			points.push_back(Vector3(b.x, b.y, 0));
+		}
+
+		Vector<Vector3> collision_segments;
+
+		for (int i = 0; i < 64; i++) {
+
+			float ra = i * Math_PI * 2.0 / 64.0;
+			float rb = (i + 1) * Math_PI * 2.0 / 64.0;
+			Point2 a = Vector2(Math::sin(ra), Math::cos(ra)) * r;
+			Point2 b = Vector2(Math::sin(rb), Math::cos(rb)) * r;
+
+			collision_segments.push_back(Vector3(a.x, 0, a.y));
+			collision_segments.push_back(Vector3(b.x, 0, b.y));
+			collision_segments.push_back(Vector3(0, a.x, a.y));
+			collision_segments.push_back(Vector3(0, b.x, b.y));
+			collision_segments.push_back(Vector3(a.x, a.y, 0));
+			collision_segments.push_back(Vector3(b.x, b.y, 0));
+		}
+
+		add_lines(points, material);
+		add_collision_segments(collision_segments);
+		Vector<Vector3> handles;
+		handles.push_back(Vector3(r, 0, 0));
+		add_handles(handles);
+	}
+
+	if (Object::cast_to<BoxShape>(*s)) {
+
+		Ref<BoxShape> bs = s;
+		Vector<Vector3> lines;
+		AABB aabb;
+		aabb.position = -bs->get_extents();
+		aabb.size = aabb.position * -2;
+
+		for (int i = 0; i < 12; i++) {
+			Vector3 a, b;
+			aabb.get_edge(i, a, b);
+			lines.push_back(a);
+			lines.push_back(b);
+		}
+
+		Vector<Vector3> handles;
+
+		for (int i = 0; i < 3; i++) {
+
+			Vector3 ax;
+			ax[i] = bs->get_extents()[i];
+			handles.push_back(ax);
+		}
+
+		add_lines(lines, material);
+		add_collision_segments(lines);
+		add_handles(handles);
+	}
+
+	if (Object::cast_to<CapsuleShape>(*s)) {
+
+		Ref<CapsuleShape> cs = s;
+		float radius = cs->get_radius();
+		float height = cs->get_height();
+
+		Vector<Vector3> points;
+
+		Vector3 d(0, 0, height * 0.5);
+		for (int i = 0; i < 360; i++) {
+
+			float ra = Math::deg2rad((float)i);
+			float rb = Math::deg2rad((float)i + 1);
+			Point2 a = Vector2(Math::sin(ra), Math::cos(ra)) * radius;
+			Point2 b = Vector2(Math::sin(rb), Math::cos(rb)) * radius;
+
+			points.push_back(Vector3(a.x, a.y, 0) + d);
+			points.push_back(Vector3(b.x, b.y, 0) + d);
+
+			points.push_back(Vector3(a.x, a.y, 0) - d);
+			points.push_back(Vector3(b.x, b.y, 0) - d);
+
+			if (i % 90 == 0) {
+
+				points.push_back(Vector3(a.x, a.y, 0) + d);
+				points.push_back(Vector3(a.x, a.y, 0) - d);
+			}
+
+			Vector3 dud = i < 180 ? d : -d;
+
+			points.push_back(Vector3(0, a.y, a.x) + dud);
+			points.push_back(Vector3(0, b.y, b.x) + dud);
+			points.push_back(Vector3(a.y, 0, a.x) + dud);
+			points.push_back(Vector3(b.y, 0, b.x) + dud);
+		}
+
+		add_lines(points, material);
+
+		Vector<Vector3> collision_segments;
+
+		for (int i = 0; i < 64; i++) {
+
+			float ra = i * Math_PI * 2.0 / 64.0;
+			float rb = (i + 1) * Math_PI * 2.0 / 64.0;
+			Point2 a = Vector2(Math::sin(ra), Math::cos(ra)) * radius;
+			Point2 b = Vector2(Math::sin(rb), Math::cos(rb)) * radius;
+
+			collision_segments.push_back(Vector3(a.x, a.y, 0) + d);
+			collision_segments.push_back(Vector3(b.x, b.y, 0) + d);
+
+			collision_segments.push_back(Vector3(a.x, a.y, 0) - d);
+			collision_segments.push_back(Vector3(b.x, b.y, 0) - d);
+
+			if (i % 16 == 0) {
+
+				collision_segments.push_back(Vector3(a.x, a.y, 0) + d);
+				collision_segments.push_back(Vector3(a.x, a.y, 0) - d);
+			}
+
+			Vector3 dud = i < 32 ? d : -d;
+
+			collision_segments.push_back(Vector3(0, a.y, a.x) + dud);
+			collision_segments.push_back(Vector3(0, b.y, b.x) + dud);
+			collision_segments.push_back(Vector3(a.y, 0, a.x) + dud);
+			collision_segments.push_back(Vector3(b.y, 0, b.x) + dud);
+		}
+
+		add_collision_segments(collision_segments);
+
+		Vector<Vector3> handles;
+		handles.push_back(Vector3(cs->get_radius(), 0, 0));
+		handles.push_back(Vector3(0, 0, cs->get_height() * 0.5 + cs->get_radius()));
+		add_handles(handles);
+	}
+
+	if (Object::cast_to<PlaneShape>(*s)) {
+
+		Ref<PlaneShape> ps = s;
+		Plane p = ps->get_plane();
+		Vector<Vector3> points;
+
+		Vector3 n1 = p.get_any_perpendicular_normal();
+		Vector3 n2 = p.normal.cross(n1).normalized();
+
+		Vector3 pface[4] = {
+			p.normal * p.d + n1 * 10.0 + n2 * 10.0,
+			p.normal * p.d + n1 * 10.0 + n2 * -10.0,
+			p.normal * p.d + n1 * -10.0 + n2 * -10.0,
+			p.normal * p.d + n1 * -10.0 + n2 * 10.0,
+		};
+
+		points.push_back(pface[0]);
+		points.push_back(pface[1]);
+		points.push_back(pface[1]);
+		points.push_back(pface[2]);
+		points.push_back(pface[2]);
+		points.push_back(pface[3]);
+		points.push_back(pface[3]);
+		points.push_back(pface[0]);
+		points.push_back(p.normal * p.d);
+		points.push_back(p.normal * p.d + p.normal * 3);
+
+		add_lines(points, material);
+		add_collision_segments(points);
+	}
+
+	if (Object::cast_to<ConvexPolygonShape>(*s)) {
+
+		PoolVector<Vector3> points = Object::cast_to<ConvexPolygonShape>(*s)->get_points();
+
+		if (points.size() > 3) {
+
+			QuickHull qh;
+			Vector<Vector3> varr = Variant(points);
+			Geometry::MeshData md;
+			Error err = qh.build(varr, md);
+			if (err == OK) {
+				Vector<Vector3> points;
+				points.resize(md.edges.size() * 2);
+				for (int i = 0; i < md.edges.size(); i++) {
+					points[i * 2 + 0] = md.vertices[md.edges[i].a];
+					points[i * 2 + 1] = md.vertices[md.edges[i].b];
+				}
+
+				add_lines(points, material);
+				add_collision_segments(points);
+			}
+		}
+	}
+
+	if (Object::cast_to<RayShape>(*s)) {
+
+		Ref<RayShape> rs = s;
+
+		Vector<Vector3> points;
+		points.push_back(Vector3());
+		points.push_back(Vector3(0, 0, rs->get_length()));
+		add_lines(points, material);
+		add_collision_segments(points);
+		Vector<Vector3> handles;
+		handles.push_back(Vector3(0, 0, rs->get_length()));
+		add_handles(handles);
+	}
+}
+
 /////
 
 void CollisionPolygonSpatialGizmo::redraw() {
@@ -4192,6 +4638,12 @@ Ref<SpatialEditorGizmo> SpatialEditorGizmos::get_gizmo(Spatial *p_spatial) {
 	if (Object::cast_to<CollisionShape>(p_spatial)) {
 
 		Ref<CollisionShapeSpatialGizmo> misg = memnew(CollisionShapeSpatialGizmo(Object::cast_to<CollisionShape>(p_spatial)));
+		return misg;
+	}
+
+	if (Object::cast_to<ParticlePrimitiveBody>(p_spatial)) {
+
+		Ref<ParticlePrimitiveShapeSpatialGizmo> misg = memnew(ParticlePrimitiveShapeSpatialGizmo(Object::cast_to<ParticlePrimitiveBody>(p_spatial)));
 		return misg;
 	}
 

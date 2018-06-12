@@ -44,6 +44,7 @@
 #include "scene/3d/navigation_mesh.h"
 #include "scene/3d/particles.h"
 #include "scene/3d/physics_joint.h"
+#include "scene/3d/physics_particle_primitive_body.h"
 #include "scene/3d/portal.h"
 #include "scene/3d/position_3d.h"
 #include "scene/3d/ray_cast.h"
@@ -361,6 +362,21 @@ public:
 	virtual void commit_handle(int p_idx, const Variant &p_restore, bool p_cancel = false);
 	void redraw();
 	CollisionShapeSpatialGizmo(CollisionShape *p_cs = NULL);
+};
+
+class ParticlePrimitiveShapeSpatialGizmo : public EditorSpatialGizmo {
+	GDCLASS(ParticlePrimitiveShapeSpatialGizmo, EditorSpatialGizmo);
+
+	ParticlePrimitiveBody *primitive_body;
+
+public:
+	ParticlePrimitiveShapeSpatialGizmo(ParticlePrimitiveBody *p_body = NULL);
+
+	virtual String get_handle_name(int p_idx) const;
+	virtual Variant get_handle_value(int p_idx) const;
+	virtual void set_handle(int p_idx, Camera *p_camera, const Point2 &p_point);
+	virtual void commit_handle(int p_idx, const Variant &p_restore, bool p_cancel = false);
+	void redraw();
 };
 
 class CollisionPolygonSpatialGizmo : public EditorSpatialGizmo {
