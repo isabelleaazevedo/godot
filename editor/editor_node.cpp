@@ -101,6 +101,7 @@
 #include "editor/plugins/path_2d_editor_plugin.h"
 #include "editor/plugins/path_editor_plugin.h"
 #include "editor/plugins/physical_bone_plugin.h"
+#include "editor/plugins/physics_particle_body_editor_plugin.h"
 #include "editor/plugins/polygon_2d_editor_plugin.h"
 #include "editor/plugins/resource_preloader_editor_plugin.h"
 #include "editor/plugins/root_motion_editor_plugin.h"
@@ -5612,6 +5613,7 @@ EditorNode::EditorNode() {
 	add_editor_plugin(memnew(SkeletonEditorPlugin(this)));
 	add_editor_plugin(memnew(SkeletonIKEditorPlugin(this)));
 	add_editor_plugin(memnew(PhysicalBonePlugin(this)));
+	add_editor_plugin(memnew(PhysicsParticleBodyEditorPlugin(this)));
 
 	// FIXME: Disabled as (according to reduz) users were complaining that it gets in the way
 	// Waiting for PropertyEditor rewrite (planned for 3.1) to be refactored.
@@ -5664,9 +5666,9 @@ EditorNode::EditorNode() {
 	current = NULL;
 
 	PhysicsServer::get_singleton()->set_active(false); // no physics by default if editor
-    ParticlePhysicsServer::get_singleton()->set_active(false); // no physics by default if editor
+	ParticlePhysicsServer::get_singleton()->set_active(false); // no physics by default if editor
 	Physics2DServer::get_singleton()->set_active(false); // no physics by default if editor
-    ScriptServer::set_scripting_enabled(false); // no scripting by default if editor
+	ScriptServer::set_scripting_enabled(false); // no scripting by default if editor
 
 	reference_resource_mem = true;
 	save_external_resources_mem = true;
