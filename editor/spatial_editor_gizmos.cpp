@@ -3037,6 +3037,8 @@ ParticleBodySpatialGizmo::ParticleBodySpatialGizmo(ParticleBody *p_body) :
 
 void ParticleBodySpatialGizmo::redraw() {
 
+	clear();
+
 	if (!body)
 		return;
 
