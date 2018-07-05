@@ -3042,6 +3042,9 @@ void ParticleBodySpatialGizmo::redraw() {
 	if (!body)
 		return;
 
+	if (!body->draw_gizmo)
+		return;
+
 	if (body->get_particle_body_model().is_null())
 		return;
 
