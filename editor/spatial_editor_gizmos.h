@@ -385,11 +385,14 @@ class ParticleBodySpatialGizmo : public EditorSpatialGizmo {
 
 	ParticleBody *body;
 	SphereMesh spherem;
+	Vector<Vector3> sphere_collision_positions;
 
 public:
 	ParticleBodySpatialGizmo(ParticleBody *p_body = NULL);
 
 	virtual void redraw();
+	virtual bool intersect_frustum(const Camera *p_camera, const Vector<Plane> &p_frustum);
+	virtual bool intersect_ray(Camera *p_camera, const Point2 &p_point, Vector3 &r_pos, Vector3 &r_normal, int *r_gizmo_handle = NULL, bool p_sec_first = false);
 
 	void add_solid_sphere(Ref<Material> &p_material, Vector3 p_position);
 };

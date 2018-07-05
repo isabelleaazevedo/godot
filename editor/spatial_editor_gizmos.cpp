@@ -3039,18 +3039,28 @@ void ParticleBodySpatialGizmo::redraw() {
 
 	clear();
 
-	if (!body)
+	if (!body) {
+		sphere_collision_positions.clear();
 		return;
+	}
 
-	if (!body->draw_gizmo)
+	if (!body->draw_gizmo) {
+		sphere_collision_positions.clear();
 		return;
+	}
 
-	if (body->get_particle_body_model().is_null())
+	if (body->get_particle_body_model().is_null()) {
+		sphere_collision_positions.clear();
 		return;
+	}
 
 	PoolVector<Vector3> particles = body->get_particle_body_model()->get_particles();
-	if (particles.size() <= 0)
+	if (particles.size() <= 0) {
+		sphere_collision_positions.clear();
 		return;
+	}
+
+	sphere_collision_positions.resize(particles.size());
 
 	Color gizmo_color = EDITOR_GET("editors/3d_gizmos/gizmo_colors/shape");
 	Ref<Material> material = create_material("shape_material", gizmo_color);
@@ -3058,7 +3068,33 @@ void ParticleBodySpatialGizmo::redraw() {
 	PoolVector<Vector3>::Read r = particles.read();
 	for (int i(particles.size() - 1); 0 <= i; --i) {
 
-		add_solid_sphere(material, particles[i]);
+		add_solid_sphere(material, r[i]);
+		sphere_collision_positions[i] = r[i];
+	}
+}
+
+bool ParticleBodySpatialGizmo::intersect_frustum(const Camera *p_camera, const Vector<Plane> &p_frustum) {
+	return EditorSpatialGizmo::intersect_frustum(p_camera, p_frustum);
+}
+
+bool ParticleBodySpatialGizmo::intersect_ray(Camera *p_camera, const Point2 &p_point, Vector3 &r_pos, Vector3 &r_normal, int *r_gizmo_handle, bool p_sec_first) {
+
+	if (EditorSpatialGizmo::intersect_ray(p_camera, p_point, r_pos, r_normal, r_gizmo_handle, p_sec_first))
+		return true;
+
+	if (!sphere_collision_positions.size())
+		return false;
+
+	Transform t = body->get_global_transform();
+
+	float distance_to_camera;
+	int particle_id;
+	for (int i(0); i < sphere_collision_positions.size(); ++i) {
+		Vector3 center = t.xform(sphere_collision_positions[i]);
+		Vector2 on_screen_sc = p_camera->unproject_position(center);
+		if ((on_screen_sc - p_point).length() > 0.1) {
+			return true;
+		}
 	}
 }
 
