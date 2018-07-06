@@ -385,7 +385,8 @@ class ParticleBodySpatialGizmo : public EditorSpatialGizmo {
 
 	ParticleBody *body;
 	SphereMesh spherem;
-	Vector<Vector3> sphere_collision_positions;
+	real_t radius;
+	Vector<int> selected_particles;
 
 public:
 	ParticleBodySpatialGizmo(ParticleBody *p_body = NULL);
@@ -394,7 +395,11 @@ public:
 	virtual bool intersect_frustum(const Camera *p_camera, const Vector<Plane> &p_frustum);
 	virtual bool intersect_ray(Camera *p_camera, const Point2 &p_point, Vector3 &r_pos, Vector3 &r_normal, int *r_gizmo_handle = NULL, bool p_sec_first = false);
 
+	const Vector<int> &get_selected_particles() const { return selected_particles; }
+
+protected:
 	void add_solid_sphere(Ref<Material> &p_material, Vector3 p_position);
+	Ref<SpatialMaterial> create_material_pb(const String &p_name, const Color &p_color, bool p_selected);
 };
 
 class CollisionPolygonSpatialGizmo : public EditorSpatialGizmo {

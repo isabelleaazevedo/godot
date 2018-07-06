@@ -3025,9 +3025,10 @@ void ParticlePrimitiveShapeSpatialGizmo::redraw() {
 ParticleBodySpatialGizmo::ParticleBodySpatialGizmo(ParticleBody *p_body) :
 		body(p_body) {
 
+	EDITOR_DEF("editors/3d_gizmos/gizmo_colors/instanced", Color(0.7, 0.7, 0.7, 0.5));
 	set_spatial_node(p_body);
 
-	real_t radius = 0.1; // TODO take this correcly
+	radius = 0.1; // TODO take this correcly
 
 	spherem.set_radius(radius * 0.5);
 	spherem.set_height(radius);
@@ -3039,62 +3040,115 @@ void ParticleBodySpatialGizmo::redraw() {
 
 	clear();
 
-	if (!body) {
-		sphere_collision_positions.clear();
+	if (!body)
 		return;
-	}
 
-	if (!body->draw_gizmo) {
-		sphere_collision_positions.clear();
+	if (!body->draw_gizmo)
 		return;
-	}
 
-	if (body->get_particle_body_model().is_null()) {
-		sphere_collision_positions.clear();
+	if (body->get_particle_body_model().is_null())
 		return;
-	}
 
 	PoolVector<Vector3> particles = body->get_particle_body_model()->get_particles();
-	if (particles.size() <= 0) {
-		sphere_collision_positions.clear();
+	if (particles.size() <= 0)
 		return;
-	}
-
-	sphere_collision_positions.resize(particles.size());
 
 	Color gizmo_color = EDITOR_GET("editors/3d_gizmos/gizmo_colors/shape");
-	Ref<Material> material = create_material("shape_material", gizmo_color);
+	Ref<Material> material = create_material_pb("particle_body_particle_material", gizmo_color, false);
+	Ref<Material> material_selected = create_material_pb("particle_body_particle_material", gizmo_color, true);
+	Ref<Material> material_fixed = create_material_pb("particle_body_particle_material_fixed", Color(0.5, 1, 1), false);
+	Ref<Material> material_fixed_selected = create_material_pb("particle_body_particle_material_fixed", Color(0.5, 1, 1), true);
 
 	PoolVector<Vector3>::Read r = particles.read();
+	PoolVector<real_t>::Read masses_r = body->get_particle_body_model()->get_masses().read();
 	for (int i(particles.size() - 1); 0 <= i; --i) {
 
-		add_solid_sphere(material, r[i]);
-		sphere_collision_positions[i] = r[i];
+		add_solid_sphere(masses_r[i] == 0 ? (selected_particles.find(i) != -1 ? material_fixed_selected : material_fixed) : (selected_particles.find(i) != -1 ? material_selected : material), r[i]);
 	}
 }
 
 bool ParticleBodySpatialGizmo::intersect_frustum(const Camera *p_camera, const Vector<Plane> &p_frustum) {
-	return EditorSpatialGizmo::intersect_frustum(p_camera, p_frustum);
+	//return EditorSpatialGizmo::intersect_frustum(p_camera, p_frustum);
+
+	selected_particles.clear();
+
+	PoolVector<Vector3> particles = body->get_particle_body_model()->get_particles();
+	if (particles.size() <= 0)
+		return false;
+
+	PoolVector<Vector3>::Read r = particles.read();
+
+	Transform t = body->get_global_transform();
+
+	const Plane *p = p_frustum.ptr();
+	int fc = p_frustum.size();
+
+	for (int i(particles.size() - 1); 0 <= i; --i) {
+
+		bool out = false;
+		Vector3 v = t.xform(r[i]);
+		for (int j = 0; j < fc; j++) {
+			if (p[j].is_point_over(v)) {
+				out = true;
+				break;
+			}
+		}
+		if (!out)
+			selected_particles.push_back(i);
+	}
+
+	if (selected_particles.size())
+		redraw();
+
+	return selected_particles.size();
 }
 
 bool ParticleBodySpatialGizmo::intersect_ray(Camera *p_camera, const Point2 &p_point, Vector3 &r_pos, Vector3 &r_normal, int *r_gizmo_handle, bool p_sec_first) {
 
-	if (EditorSpatialGizmo::intersect_ray(p_camera, p_point, r_pos, r_normal, r_gizmo_handle, p_sec_first))
-		return true;
+	//if (EditorSpatialGizmo::intersect_ray(p_camera, p_point, r_pos, r_normal, r_gizmo_handle, p_sec_first))
+	//	return true;
 
-	if (!sphere_collision_positions.size())
-		return false;
+	selected_particles.clear();
 
 	Transform t = body->get_global_transform();
 
-	float distance_to_camera;
-	int particle_id;
-	for (int i(0); i < sphere_collision_positions.size(); ++i) {
-		Vector3 center = t.xform(sphere_collision_positions[i]);
-		Vector2 on_screen_sc = p_camera->unproject_position(center);
-		if ((on_screen_sc - p_point).length() > 0.1) {
-			return true;
+	PoolVector<Vector3> particles = body->get_particle_body_model()->get_particles();
+	if (particles.size() <= 0)
+		return false;
+
+	PoolVector<Vector3>::Read r = particles.read();
+
+	real_t distance_to_camera = FLT_MAX;
+	int particle_id = -1;
+	Vector3 position;
+
+	for (int i(particles.size() - 1); 0 <= i; --i) {
+
+		Vector3 center = t.xform(r[i]);
+		Vector3 projected_out(center);
+		projected_out.y += radius * 0.5;
+		//projected_out += p_camera->get_camera_transform().basis.get_axis(1) * radius * 0.5;
+
+		Vector2 on_screen_center = p_camera->unproject_position(center);
+		Vector2 on_screen_out = p_camera->unproject_position(projected_out);
+
+		if (on_screen_center.distance_squared_to(p_point) <= on_screen_center.distance_squared_to(on_screen_out)) {
+			real_t par_distance_to_camera = (center - p_camera->get_global_transform().origin).length_squared();
+			if (distance_to_camera > par_distance_to_camera) {
+				distance_to_camera = par_distance_to_camera;
+				particle_id = i;
+				position = r[i];
+			}
 		}
+	}
+
+	if (particle_id > -1) {
+		r_pos = position;
+		selected_particles.push_back(particle_id);
+		redraw();
+		return true;
+	} else {
+		return false;
 	}
 }
 
@@ -3115,6 +3169,36 @@ void ParticleBodySpatialGizmo::add_solid_sphere(Ref<Material> &p_material, Vecto
 	m->add_surface_from_arrays(spherem.surface_get_primitive_type(0), arrays);
 	m->surface_set_material(0, p_material);
 	add_mesh(m);
+}
+
+Ref<SpatialMaterial> ParticleBodySpatialGizmo::create_material_pb(const String &p_name, const Color &p_color, bool p_selected) {
+
+	String name = p_name;
+
+	if (p_selected) {
+		name += "@selected";
+	}
+
+	if (SpatialEditorGizmos::singleton->material_cache.has(name)) {
+		return SpatialEditorGizmos::singleton->material_cache[name];
+	}
+
+	Color color = p_color;
+
+	if (!p_selected) {
+		color.a *= 0.3;
+	}
+
+	Ref<SpatialMaterial> line_material;
+	line_material.instance();
+	line_material->set_flag(SpatialMaterial::FLAG_UNSHADED, true);
+	line_material->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+
+	line_material->set_albedo(color);
+
+	SpatialEditorGizmos::singleton->material_cache[name] = line_material;
+
+	return line_material;
 }
 
 /////
