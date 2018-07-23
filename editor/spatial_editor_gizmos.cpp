@@ -3055,7 +3055,7 @@ void ParticleBodySpatialGizmo::redraw() {
 
 	Color gizmo_color = EDITOR_GET("editors/3d_gizmos/gizmo_colors/shape");
 	Ref<Material> material = create_material_pb("particle_body_particle_material", gizmo_color, false);
-	Ref<Material> material_selected = create_material_pb("particle_body_particle_material", gizmo_color, true);
+	Ref<Material> material_selected = create_material_pb("particle_body_particle_material", Color(1, 0, 0), true);
 	Ref<Material> material_fixed = create_material_pb("particle_body_particle_material_fixed", Color(0.5, 1, 1), false);
 	Ref<Material> material_fixed_selected = create_material_pb("particle_body_particle_material_fixed", Color(0.5, 1, 1), true);
 
@@ -3067,8 +3067,9 @@ void ParticleBodySpatialGizmo::redraw() {
 	}
 }
 
+#include "editor/plugins/physics_particle_body_editor_plugin.h"
+
 bool ParticleBodySpatialGizmo::intersect_frustum(const Camera *p_camera, const Vector<Plane> &p_frustum) {
-	//return EditorSpatialGizmo::intersect_frustum(p_camera, p_frustum);
 
 	selected_particles.clear();
 
@@ -3097,16 +3098,15 @@ bool ParticleBodySpatialGizmo::intersect_frustum(const Camera *p_camera, const V
 			selected_particles.push_back(i);
 	}
 
-	if (selected_particles.size())
+	if (selected_particles.size()) {
 		redraw();
+		EditorNode::get_singleton()->particle_body_plugin->redraw();
+	}
 
 	return selected_particles.size();
 }
 
 bool ParticleBodySpatialGizmo::intersect_ray(Camera *p_camera, const Point2 &p_point, Vector3 &r_pos, Vector3 &r_normal, int *r_gizmo_handle, bool p_sec_first) {
-
-	//if (EditorSpatialGizmo::intersect_ray(p_camera, p_point, r_pos, r_normal, r_gizmo_handle, p_sec_first))
-	//	return true;
 
 	selected_particles.clear();
 
@@ -3146,6 +3146,7 @@ bool ParticleBodySpatialGizmo::intersect_ray(Camera *p_camera, const Point2 &p_p
 		r_pos = position;
 		selected_particles.push_back(particle_id);
 		redraw();
+		EditorNode::get_singleton()->particle_body_plugin->redraw();
 		return true;
 	} else {
 		return false;

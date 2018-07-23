@@ -5613,7 +5613,8 @@ EditorNode::EditorNode() {
 	add_editor_plugin(memnew(SkeletonEditorPlugin(this)));
 	add_editor_plugin(memnew(SkeletonIKEditorPlugin(this)));
 	add_editor_plugin(memnew(PhysicalBonePlugin(this)));
-	add_editor_plugin(memnew(PhysicsParticleBodyEditorPlugin(this)));
+	particle_body_plugin = memnew(PhysicsParticleBodyEditorPlugin(this));
+	add_editor_plugin(particle_body_plugin);
 
 	// FIXME: Disabled as (according to reduz) users were complaining that it gets in the way
 	// Waiting for PropertyEditor rewrite (planned for 3.1) to be refactored.
