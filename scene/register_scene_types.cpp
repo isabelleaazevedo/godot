@@ -64,11 +64,6 @@
 #include "scene/2d/tile_map.h"
 #include "scene/2d/visibility_notifier_2d.h"
 #include "scene/2d/y_sort.h"
-#include "scene/3d/physics_particle_body.h"
-#include "scene/3d/physics_particle_body_mesh_instance.h"
-#include "scene/3d/physics_particle_object.h"
-#include "scene/3d/physics_particle_primitive_body.h"
-#include "scene/3d/physics_particle_world.h"
 #include "scene/animation/animation_blend_space_1d.h"
 #include "scene/animation/animation_blend_space_2d.h"
 #include "scene/animation/animation_blend_tree.h"
@@ -198,6 +193,12 @@
 #include "scene/3d/path.h"
 #include "scene/3d/physics_body.h"
 #include "scene/3d/physics_joint.h"
+#include "scene/3d/physics_particle_body.h"
+#include "scene/3d/physics_particle_body_mesh_instance.h"
+#include "scene/3d/physics_particle_glue.h"
+#include "scene/3d/physics_particle_object.h"
+#include "scene/3d/physics_particle_primitive_body.h"
+#include "scene/3d/physics_particle_world.h"
 #include "scene/3d/portal.h"
 #include "scene/3d/position_3d.h"
 #include "scene/3d/proximity_group.h"
@@ -450,6 +451,7 @@ void register_scene_types() {
 	ClassDB::register_class<ParticleBody>();
 	ClassDB::register_class<ParticlePrimitiveBody>();
 	ClassDB::register_class<ParticlePrimitiveArea>();
+	ClassDB::register_class<PhysicsParticleGlue>();
 
 	ClassDB::register_class<VehicleBody>();
 	ClassDB::register_class<VehicleWheel>();
