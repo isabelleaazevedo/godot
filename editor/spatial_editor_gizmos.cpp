@@ -3116,6 +3116,9 @@ bool ParticleBodySpatialGizmo::intersect_ray(Camera *p_camera, const Point2 &p_p
 
 	selected_particles.clear();
 
+	if (body->get_particle_body_model().is_null())
+		return false;
+
 	Transform t = body->get_global_transform();
 
 	PoolVector<Vector3> particles = body->get_particle_body_model()->get_particles();
