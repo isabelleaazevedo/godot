@@ -3030,8 +3030,8 @@ ParticleBodySpatialGizmo::ParticleBodySpatialGizmo(ParticleBody *p_body) :
 
 	radius = 0.1; // TODO take this correcly
 
-	spherem.set_radius(radius * 0.5);
-	spherem.set_height(radius);
+	spherem.set_radius(radius);
+	spherem.set_height(radius * 2);
 	spherem.set_radial_segments(8);
 	spherem.set_rings(8);
 }
