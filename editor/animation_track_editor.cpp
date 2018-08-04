@@ -1429,11 +1429,11 @@ void AnimationTrackEdit::_notification(int p_what) {
 			}
 		}
 
-		if (in_group) {
-			draw_line(Vector2(timeline->get_name_limit(), get_size().height), get_size(), linecolor);
-		} else {
-			draw_line(Vector2(0, get_size().height), get_size(), linecolor);
-		}
+		//if (in_group) {
+		//	draw_line(Vector2(timeline->get_name_limit(), get_size().height), get_size(), linecolor);
+		//} else {
+		//	draw_line(Vector2(0, get_size().height), get_size(), linecolor);
+		//}
 
 		if (dropping_at != 0) {
 			Color drop_color = get_color("accent_color", "Editor");
