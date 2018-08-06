@@ -2995,8 +2995,8 @@ void ParticlePrimitiveShapeSpatialGizmo::redraw() {
 				Vector<Vector3> points;
 				points.resize(md.edges.size() * 2);
 				for (int i = 0; i < md.edges.size(); i++) {
-					points[i * 2 + 0] = md.vertices[md.edges[i].a];
-					points[i * 2 + 1] = md.vertices[md.edges[i].b];
+					points.write[i * 2 + 0] = md.vertices[md.edges[i].a];
+					points.write[i * 2 + 1] = md.vertices[md.edges[i].b];
 				}
 
 				add_lines(points, material);
